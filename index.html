@@ -142,12 +142,17 @@ border-left:2px solid rgba(26,26,255,.3);}
 }
 
 /* ── OVERLAY ── */
-#overlay{position:absolute;inset:0;background:rgba(0,0,11,.88);display:flex;flex-direction:column;
-align-items:center;justify-content:center;gap:14px;z-index:10;backdrop-filter:blur(4px);}
+#overlay{position:absolute;inset:0;background:rgba(0,0,11,.92);display:flex;flex-direction:column;
+align-items:center;justify-content:center;gap:20px;z-index:10;backdrop-filter:blur(6px);}
 #overlay.hidden{display:none;}
-#overlay h2{font-size:18px;color:var(–yellow);text-shadow:0 0 20px var(–yellow);}
-#overlay p{font-size:9px;color:#ccc;max-width:260px;}
-#overlay .btn{max-width:220px;}
+#overlay h2{
+font-size:clamp(28px,8vw,56px);
+color:var(–yellow);
+text-shadow:0 0 30px var(–yellow), 0 0 60px rgba(255,215,0,.5);
+letter-spacing:3px;
+}
+#overlay p{font-size:clamp(9px,2.5vw,13px);color:#ccc;max-width:300px;text-align:center;line-height:1.8;}
+#overlay .btn{max-width:280px;font-size:clamp(10px,2.5vw,14px);padding:18px 24px;}
 
 /* bg glow */
 body::before{content:’’;position:fixed;inset:0;pointer-events:none;z-index:-1;
@@ -254,9 +259,9 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
   </div><!-- /game-body -->
 
   <div id="overlay" class="hidden">
-    <h2 id="ov-title">PRÊT ?</h2>
+    <h2 id="ov-title">READY?</h2>
     <p id="ov-sub"></p>
-    <div class="btn btn-yellow hidden" id="ov-btn" onclick="overlayAction()">DÉMARRER</div>
+    <div class="btn btn-yellow hidden" id="ov-btn" onclick="overlayAction()">START</div>
     <div class="btn btn-gray" id="ov-menu" onclick="backToMenu()" style="max-width:220px;">MENU</div>
   </div>
 </div>
@@ -342,7 +347,7 @@ function startSolo(){
   initGameState();
   showScreen('game-screen');
   setupCanvas();
-  showOverlay('READY?','Mange toutes les pac-gommes !','START');
+  showOverlay('READY?','Eat all the dots!','START');
 }
 
 // ═══════════════════════════════════════════════════
@@ -426,13 +431,13 @@ function onMsg(data){
     initGameState();
     showScreen('game-screen');
     setupCanvas();
-    showOverlay('WAITING…','Waiting for P1 to start',null);
+    showOverlay('WAITING…','Waiting for P1 to start…',null);
   } else if(data.type==='dir'&&myRole==='p1'&&p2){
     p2.nextDir=data.dir;
   } else if(data.type==='state'&&myRole==='p2'){
     applyState(data.state);
   } else if(data.type==='countdown'){
-    showOverlay(data.val>0?String(data.val):'GO !','',null);
+    showOverlay(data.val>0?String(data.val):'GO!','',null);
     if(data.val===0) setTimeout(()=>{hideOverlay();gameRunning=true;},300);
   } else if(data.type==='restart'&&myRole==='p2'){
     initGameState(); hideOverlay();
@@ -773,7 +778,7 @@ function beginCountdown(){
       if(gameMode==='multi') sendMsg({type:'countdown',val:c});
       c--;setTimeout(tick,900);
     } else {
-      showOverlay('GO !','',null);
+      showOverlay('GO!','',null);
       if(gameMode==='multi') sendMsg({type:'countdown',val:0});
       setTimeout(()=>{hideOverlay();startGameLoop();},400);
     }
@@ -845,8 +850,8 @@ generateRoom();
       'padding:12px 16px;font-family:"Press Start 2P",monospace;font-size:7px;color:#aaa;'+
       'text-align:center;z-index:9999;max-width:280px;line-height:1.8;'+
       'box-shadow:0 0 20px rgba(0,0,255,.3);';
-    banner.innerHTML='📲 <span style="color:#FFD700">JOUER EN APP</span><br>'+
-      'Safari → <span style="color:#00ffff">⬆︎ Partager</span> → '+
+    banner.innerHTML='📲 <span style="color:#FFD700">INSTALL AS APP</span><br>'+
+      'Safari → <span style="color:#00ffff">⬆︎ Share</span> → '+
       '<span style="color:#00ffff">Sur l\'écran d\'accueil</span>'+
       '<div style="margin-top:8px;cursor:pointer;color:#555;font-size:6px" onclick="this.parentElement.remove()">✕ FERMER</div>';
     document.body.appendChild(banner);
