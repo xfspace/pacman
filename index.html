@@ -436,38 +436,79 @@ function joinAsP1(){
 
 function joinAsP2(){
   roomId=getRoom(); if(roomId.length<3){setStatus('CODE TOO SHORT!');return;}
-  myRole='p2'; setStatus('Joining room...');
+  myRole='p2';
+  setStatus('Connecting...');
+  // destroy any previous peer
+  if(peer){try{peer.destroy();}catch(e){} peer=null;}
   loadPeerJS(()=>{
-    peer=new Peer('pacman-'+roomId+'-p2',{debug:0});
+    // Give P2 a unique id so retries don't collide
+    const p2id='pacman-'+roomId+'-p2-'+Math.floor(Math.random()*9999);
+    peer=new Peer(p2id,{debug:1});
     peer.on('open',()=>{
-      conn=peer.connect('pacman-'+roomId+'-p1',{reliable:true});
-      setupConn();
+      setStatus('Reaching host...');
+      // Show P2 waiting screen
+      showScreen('waiting');
+      document.getElementById('room-display').textContent=roomId;
+      document.querySelector('#waiting .dots').textContent='CONNECTING TO HOST';
+      document.getElementById('p2-wait').style.opacity='1';
+      document.getElementById('p2-wait-label').textContent='YOU — JOINING…';
+      document.querySelector('#waiting .player-indicator:first-of-type span').textContent='P1 (Yellow) — HOST';
+      conn=peer.connect('pacman-'+roomId+'-p1',{reliable:true,serialization:'json'});
+      // Timeout if no connection after 10s
+      const timeout=setTimeout(()=>{
+        if(!peerReady){
+          setStatus('Host not found. Check the code.');
+          try{peer.destroy();}catch(e){}
+          peer=null; conn=null;
+        }
+      },10000);
+      conn.on('open',()=>{
+        clearTimeout(timeout);
+        peerReady=true;
+        setStatus('Connected!');
+        setupConnHandlers();
+        // P2 waits for 'start' message from P1
+      });
+      conn.on('error',e=>{
+        clearTimeout(timeout);
+        setStatus('Connection error. Try again.');
+        console.warn('conn error',e);
+      });
     });
-    peer.on('error',()=>{setStatus('CANNOT JOIN. Check the code.');showScreen('lobby');});
+    peer.on('error',(e)=>{
+      setStatus('Error: '+e.type+'. Check the code.');
+      console.warn('peer error',e);
+    });
   });
 }
 
 function setupConn(){
+  // P1 side: called when P2 connects to us
+  setupConnHandlers();
   conn.on('open',()=>{
     peerReady=true;
-    if(myRole==='p1'){
-      document.getElementById('p2-wait').style.opacity='1';
-      document.getElementById('p2-wait-label').textContent='P2 — CONNECTED ✓';
-      setTimeout(()=>{
-        gameMode='multi';
-        document.getElementById('score2-box').style.display='';
-        document.getElementById('lbl1').textContent='🟡 P1';
-        initGameState();
-        showScreen('game-screen');
-        setupCanvas();
-        sendMsg({type:'start'});
-        showOverlay('READY?','','START');
-      },600);
-    }
+    document.getElementById('p2-wait').style.opacity='1';
+    document.getElementById('p2-wait-label').textContent='P2 — CONNECTED ✓';
+    setTimeout(()=>{
+      gameMode='multi';
+      document.getElementById('score2-box').style.display='';
+      document.getElementById('lbl1').textContent='🟡 P1';
+      initGameState();
+      showScreen('game-screen');
+      setupCanvas();
+      sendMsg({type:'start'});
+      showOverlay('READY?','','START');
+    },600);
   });
+}
+
+function setupConnHandlers(){
   conn.on('data',onMsg);
-  conn.on('close',()=>{if(gameRunning){gameRunning=false;showOverlay('DISCONNECTED','Opponent left the game',null);}});
-  conn.on('error',e=>console.warn(e));
+  conn.on('close',()=>{
+    peerReady=false;
+    if(gameRunning){gameRunning=false;showOverlay('DISCONNECTED','Opponent left the game',null);}
+  });
+  conn.on('error',e=>console.warn('conn handler error',e));
 }
 
 function sendMsg(data){if(conn&&conn.open){try{conn.send(data);}catch(e){}}}
