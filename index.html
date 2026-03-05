@@ -225,8 +225,8 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
 
   <div id="lobby-join" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:320px;background:rgba(255,255,255,0.07);border:2px solid #1a1aff;border-radius:14px;padding:20px;">
     <div style="font-size:9px;color:#aaa;letter-spacing:1px;">ENTER ROOM CODE</div>
-    <input type="text" id="room-input" maxlength="6" placeholder="ABC123"
-      style="background:#fff;color:#000;font-family:'Press Start 2P',monospace;font-size:20px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;text-transform:uppercase;letter-spacing:6px;outline:none;">
+    <input type="text" id="room-input" maxlength="64" placeholder="Paste code from P1"
+      style="background:#fff;color:#000;font-family:monospace;font-size:13px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;letter-spacing:1px;outline:none;">
     <button onclick="joinAsP2()" style="font-family:'Press Start 2P',monospace;font-size:11px;padding:18px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:10px;cursor:pointer;box-shadow:0 5px 0 #8B3060;">▶ CONNECT</button>
     <button onclick="showLobbyChoose()" style="font-family:'Press Start 2P',monospace;font-size:8px;padding:12px;width:100%;background:#222;color:#888;border:none;border-radius:8px;cursor:pointer;">← BACK</button>
   </div>
@@ -240,7 +240,7 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
 <div class="screen" id="waiting">
   <div style="font-size:40px">👾</div>
   <div style="font-size:12px;color:var(--yellow)">ROOM CODE</div>
-  <div id="room-display" style="font-size:26px;color:var(--cyan);letter-spacing:6px;text-shadow:0 0 20px var(--cyan)">------</div>
+  <div id="room-display" style="font-size:11px;color:var(--cyan);letter-spacing:1px;text-shadow:0 0 10px var(--cyan);word-break:break-all;max-width:320px;line-height:1.6;padding:0 10px;">------</div>
   <div style="font-size:8px;color:#aaa" class="dots">WAITING FOR PLAYER 2</div>
   <div style="font-size:7px;color:#555">Share this code with your opponent</div>
   <div class="player-indicator"><div class="pip p1"></div><span>P1 (Yellow Pac-Man) — YOU</span></div>
@@ -396,10 +396,10 @@ function generateRoom(){
   return id;
 }
 function getRoom(){
-  return (document.getElementById('room-input').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  return (document.getElementById('room-input').value||'').trim();
 }
 
-function lobbyHostFlow(){ const code=generateRoom(); joinAsP1(code); }
+function lobbyHostFlow(){ joinAsP1(); }
 function lobbyJoinFlow(){
   document.getElementById('lobby-choose').style.display='none';
   document.getElementById('lobby-join').style.display='flex';
@@ -427,29 +427,25 @@ function destroyPeer(){
   peerReady=false;
 }
 
-// P1 generates a random peer ID derived from the room code
-// so it's always unique and P2 can target it exactly
-function joinAsP1(code){
-  roomId=code||getRoom();
-  if(roomId.length<4){setStatus('CODE TOO SHORT!');return;}
+// ── P1: let PeerJS assign a random ID, display it as the room code ──
+function joinAsP1(){
   myRole='p1';
   destroyPeer();
   setStatus('Creating room...');
   loadPeerJS(()=>{
-    // Use a stable, unique peer ID: 'pm-' + roomCode
-    // If already taken (retry), suffix with timestamp
-    const peerId='pm-'+roomId;
-    peer=new Peer(peerId,{debug:2});
+    // No fixed ID — PeerJS assigns a unique random one
+    peer=new Peer({debug:0});
     peer.on('open', id=>{
+      // The room code IS the full peer ID — P2 types this exactly
+      roomId=id;
       showScreen('waiting');
-      document.getElementById('room-display').textContent=roomId;
-      setStatus('Waiting for Player 2…');
+      document.getElementById('room-display').style.fontSize='12px';
+      document.getElementById('room-display').style.letterSpacing='2px';
+      document.getElementById('room-display').textContent=id;
+      setStatus('Share this code with Player 2');
       peer.on('connection', c=>{
         conn=c;
-        conn.on('open',()=>{
-          peerReady=true;
-          onP1Connected();
-        });
+        conn.on('open',()=>{ peerReady=true; onP1Connected(); });
         conn.on('data', d=>onMsg(d));
         conn.on('close',()=>{
           peerReady=false;
@@ -457,55 +453,30 @@ function joinAsP1(code){
         });
       });
     });
-    peer.on('error', e=>{
-      // ID taken: retry with timestamp suffix
-      if(e.type==='unavailable-id'){
-        destroyPeer();
-        const peerId2='pm-'+roomId+'-'+Date.now()%10000;
-        peer=new Peer(peerId2,{debug:2});
-        peer.on('open',()=>{
-          // store actual peer id so P2 can connect
-          // We encode the real ID into the room display
-          roomId=peerId2.replace('pm-','');
-          showScreen('waiting');
-          document.getElementById('room-display').textContent=roomId;
-          setStatus('Waiting for Player 2…');
-          peer.on('connection',c=>{
-            conn=c;
-            conn.on('open',()=>{ peerReady=true; onP1Connected(); });
-            conn.on('data',d=>onMsg(d));
-            conn.on('close',()=>{ peerReady=false; if(gameRunning){gameRunning=false;showOverlay('DISCONNECTED','Opponent left',null);} });
-          });
-        });
-        peer.on('error',e2=>setStatus('Error: '+e2.type));
-      } else {
-        setStatus('Error: '+e.type);
-      }
-    });
+    peer.on('error', e=>setStatus('Error: '+e.type));
   });
 }
 
+// ── P2: paste the full code shown on P1's screen ──
 function joinAsP2(){
   roomId=getRoom();
-  if(roomId.length<4){setStatus('CODE TOO SHORT!');return;}
+  if(roomId.length<6){setStatus('CODE TOO SHORT!');return;}
   myRole='p2';
   destroyPeer();
   setStatus('Connecting...');
   showScreen('waiting');
+  document.getElementById('room-display').style.fontSize='12px';
+  document.getElementById('room-display').style.letterSpacing='2px';
   document.getElementById('room-display').textContent=roomId;
   document.getElementById('p2-wait').style.opacity='1';
   document.getElementById('p2-wait-label').textContent='YOU — JOINING…';
   loadPeerJS(()=>{
-    // P2 gets a fully random peer ID to avoid collisions
-    peer=new Peer('pm-p2-'+Math.random().toString(36).slice(2,8),{debug:2});
+    peer=new Peer({debug:0});
     peer.on('open',()=>{
       setStatus('Reaching host…');
-      // Target P1's peer ID
-      conn=peer.connect('pm-'+roomId,{reliable:true});
+      conn=peer.connect(roomId,{reliable:true});
       const timeout=setTimeout(()=>{
-        if(!peerReady){
-          setStatus('Host not found. Check the code & try again.');
-        }
+        if(!peerReady) setStatus('Host not found. Check the code.');
       },12000);
       conn.on('open',()=>{
         clearTimeout(timeout);
@@ -522,9 +493,7 @@ function joinAsP2(){
         setStatus('Connection failed: '+e.type);
       });
     });
-    peer.on('error',e=>{
-      setStatus('Error: '+e.type+'. Check the code.');
-    });
+    peer.on('error',e=>setStatus('Error: '+e.type));
   });
 }
 
