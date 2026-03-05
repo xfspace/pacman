@@ -45,11 +45,23 @@ animation:flicker 2.5s infinite;letter-spacing:2px;}
 @keyframes flicker{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.5}95%{opacity:1}97%{opacity:.7}99%{opacity:1}}
 .subtitle{font-size:9px;color:var(–cyan);letter-spacing:1px;margin-top:-6px;}
 
-/* ── CARDS ── */
-.mode-card{background:rgba(255,255,255,.05);border:2px solid var(–blue);border-radius:14px;
+/* ── MENU CARDS ── */
+#menu-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;width:100%;max-width:560px;}
+.mode-card{
+background:rgba(255,255,255,.06);border:3px solid var(–blue);border-radius:20px;
+flex:1;min-width:140px;max-width:220px;
+display:flex;flex-direction:column;align-items:center;justify-content:center;
+gap:10px;padding:28px 16px;cursor:pointer;
+transition:border-color .15s,background .15s,transform .1s;
+-webkit-tap-highlight-color:transparent;
+}
+.mode-card:active{transform:scale(.95);background:rgba(255,255,255,.12);border-color:var(–cyan);}
+.mode-icon{font-size:48px;line-height:1;}
+.mode-title{font-size:13px;color:var(–yellow);text-align:center;letter-spacing:1px;}
+.mode-desc{font-size:7px;color:#888;text-align:center;}
+/* lobby card reuse */
+.lobby-card{background:rgba(255,255,255,.05);border:2px solid var(–blue);border-radius:14px;
 padding:18px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;}
-.mode-card h2{font-size:11px;color:var(–yellow);margin-bottom:2px;}
-.mode-card p{font-size:7px;color:#888;line-height:1.6;}
 
 /* ── BUTTONS ── */
 .btn{font-family:‘Press Start 2P’,monospace;font-size:10px;padding:14px 20px;border:none;
@@ -101,16 +113,33 @@ padding:6px 12px;background:rgba(0,0,0,.8);border-bottom:2px solid var(–blue);
 #lives-display{font-size:8px;}
 #level-display{font-size:7px;color:#666;}
 
-canvas{flex:1;display:block;width:100%;image-rendering:pixelated;}
+/* game-body wraps canvas + dpad, changes direction per orientation */
+#game-body{display:flex;flex:1;min-height:0;overflow:hidden;}
+#canvas-wrap{display:flex;align-items:center;justify-content:center;flex:1;min-width:0;min-height:0;}
+canvas{display:block;image-rendering:pixelated;max-width:100%;max-height:100%;}
 
-#dpad{display:flex;flex-direction:column;align-items:center;
-padding:6px 0 8px;flex-shrink:0;background:rgba(0,0,0,.5);}
+#dpad{display:flex;flex-direction:column;align-items:center;justify-content:center;
+flex-shrink:0;background:rgba(0,0,0,.5);}
 .dpad-row{display:flex;gap:4px;}
-.dpad-btn{width:62px;height:62px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);
+.dpad-btn{background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);
 border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;
 cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .1s;}
 .dpad-btn:active,.dpad-btn.pressed{background:rgba(255,255,255,.3);border-color:var(–yellow);}
 .dpad-center{background:transparent!important;border:none!important;}
+
+/* PORTRAIT: dpad below canvas, full width, square buttons */
+@media (orientation:portrait){
+#game-body{flex-direction:column;}
+#dpad{width:100%;padding:6px 0 10px;}
+.dpad-btn{width:62px;height:62px;}
+}
+/* LANDSCAPE: dpad to the right, taller buttons */
+@media (orientation:landscape){
+#game-body{flex-direction:row;}
+#dpad{width:auto;min-width:180px;padding:0 12px;
+border-left:2px solid rgba(26,26,255,.3);}
+.dpad-btn{width:58px;height:58px;}
+}
 
 /* ── OVERLAY ── */
 #overlay{position:absolute;inset:0;background:rgba(0,0,11,.88);display:flex;flex-direction:column;
@@ -129,22 +158,23 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
 </head>
 <body>
 
-<!-- ══════════ MENU PRINCIPAL ══════════ -->
+<!-- ══════════ MENU ══════════ -->
 
 <div class="screen active" id="menu">
   <h1>PAC-MAN</h1>
   <div class="subtitle">★ ARCADE ★</div>
 
-  <div class="mode-card">
-    <h2>🟡 1 JOUEUR</h2>
-    <p>Joue seul contre les fantômes. Mange toutes les pac-gommes !</p>
-    <div class="btn btn-yellow" onclick="startSolo()">JOUER SOLO</div>
-  </div>
-
-  <div class="mode-card">
-    <h2>💗 2 JOUEURS</h2>
-    <p>Joue en réseau depuis deux iPhones différents. Partage un code de salle.</p>
-    <div class="btn btn-pink" onclick="showScreen('lobby')">MULTIJOUEUR</div>
+  <div id="menu-cards">
+    <div class="mode-card" onclick="startSolo()">
+      <div class="mode-icon">🟡</div>
+      <div class="mode-title">1 PLAYER</div>
+      <div class="mode-desc">Solo vs ghosts</div>
+    </div>
+    <div class="mode-card" onclick="showScreen('lobby')">
+      <div class="mode-icon">💗</div>
+      <div class="mode-title">2 PLAYERS</div>
+      <div class="mode-desc">Network co-op</div>
+    </div>
   </div>
 </div>
 
@@ -152,34 +182,34 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
 
 <div class="screen" id="lobby">
   <h1>PAC-MAN</h1>
-  <div class="subtitle">★ 2 JOUEURS ★</div>
+  <div class="subtitle">★ 2 PLAYERS ★</div>
 
-  <div class="mode-card">
-    <label>CODE DE SALLE (partage-le à ton ami)</label>
+  <div class="lobby-card">
+    <label>ROOM CODE — share with your friend</label>
     <input type="text" id="room-input" maxlength="6" placeholder="EX: ABC123">
-    <div style="font-size:7px;color:var(--cyan);cursor:pointer;text-align:right;" onclick="generateRoom()">↻ GÉNÉRER UN CODE</div>
-    <div class="btn btn-yellow" onclick="joinAsP1()">🟡 JOUEUR 1 (HÔTE)</div>
-    <div class="divider">— ou —</div>
-    <div class="btn btn-pink" onclick="joinAsP2()">💗 JOUEUR 2 (REJOINDRE)</div>
+    <div style="font-size:7px;color:var(--cyan);cursor:pointer;text-align:right;" onclick="generateRoom()">↻ GENERATE CODE</div>
+    <div class="btn btn-yellow" onclick="joinAsP1()">🟡 PLAYER 1 — HOST</div>
+    <div class="divider">— or —</div>
+    <div class="btn btn-pink" onclick="joinAsP2()">💗 PLAYER 2 — JOIN</div>
   </div>
 
-  <div id="status-msg">ENTREZ UN CODE DE SALLE</div>
-  <div class="btn btn-gray" style="max-width:200px;" onclick="showScreen('menu')">← RETOUR</div>
+  <div id="status-msg">ENTER A ROOM CODE</div>
+  <div class="btn btn-gray" style="max-width:200px;" onclick="showScreen('menu')">← BACK</div>
 </div>
 
 <!-- ══════════ WAITING ══════════ -->
 
 <div class="screen" id="waiting">
   <div style="font-size:40px">👾</div>
-  <div style="font-size:12px;color:var(--yellow)">CODE DE SALLE</div>
+  <div style="font-size:12px;color:var(--yellow)">ROOM CODE</div>
   <div id="room-display" style="font-size:26px;color:var(--cyan);letter-spacing:6px;text-shadow:0 0 20px var(--cyan)">------</div>
-  <div style="font-size:8px;color:#aaa" class="dots">EN ATTENTE DU 2ème JOUEUR</div>
-  <div style="font-size:7px;color:#555">Partage ce code avec ton adversaire</div>
-  <div class="player-indicator"><div class="pip p1"></div><span>J1 (Pac-Man Jaune) — MOI</span></div>
+  <div style="font-size:8px;color:#aaa" class="dots">WAITING FOR PLAYER 2</div>
+  <div style="font-size:7px;color:#555">Share this code with your opponent</div>
+  <div class="player-indicator"><div class="pip p1"></div><span>P1 (Yellow Pac-Man) — YOU</span></div>
   <div class="player-indicator" id="p2-wait" style="opacity:.4">
-    <div class="pip p2"></div><span id="p2-wait-label">J2 (Pac-Man Rose) — EN ATTENTE…</span>
+    <div class="pip p2"></div><span id="p2-wait-label">P2 (Pink Pac-Man) — WAITING…</span>
   </div>
-  <div class="btn btn-gray" style="max-width:200px;margin-top:10px;" onclick="backToMenu()">← ANNULER</div>
+  <div class="btn btn-gray" style="max-width:200px;margin-top:10px;" onclick="backToMenu()">← CANCEL</div>
 </div>
 
 <!-- ══════════ GAME ══════════ -->
@@ -192,15 +222,16 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
     </div>
     <div id="hud-mid">
       <div id="lives-display"></div>
-      <div id="level-display">NIV 1</div>
+      <div id="level-display">LVL 1</div>
     </div>
     <div class="score-box" id="score2-box">
-      <div class="score-label">J2 💗</div>
+      <div class="score-label">P2 💗</div>
       <div class="score-val p2" id="score2">0</div>
     </div>
   </div>
 
-<canvas id="gc"></canvas>
+  <div id="game-body">
+  <div id="canvas-wrap"><canvas id="gc"></canvas></div>
 
   <div id="dpad">
     <div class="dpad-row">
@@ -219,6 +250,8 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
       <div class="dpad-btn dpad-center"></div>
     </div>
   </div>
+
+  </div><!-- /game-body -->
 
   <div id="overlay" class="hidden">
     <h2 id="ov-title">PRÊT ?</h2>
@@ -309,7 +342,7 @@ function startSolo(){
   initGameState();
   showScreen('game-screen');
   setupCanvas();
-  showOverlay('PRÊT ?','Mange toutes les pac-gommes !','DÉMARRER');
+  showOverlay('READY?','Mange toutes les pac-gommes !','START');
 }
 
 // ═══════════════════════════════════════════════════
@@ -333,30 +366,30 @@ function loadPeerJS(cb){
 }
 
 function joinAsP1(){
-  roomId=getRoom(); if(roomId.length<3){setStatus('CODE TROP COURT !');return;}
+  roomId=getRoom(); if(roomId.length<3){setStatus('CODE TOO SHORT!');return;}
   myRole='p1';
   loadPeerJS(()=>{
-    setStatus('Connexion...');
+    setStatus('Connecting...');
     peer=new Peer('pacman-'+roomId+'-p1',{debug:0});
     peer.on('open',()=>{
       showScreen('waiting');
       document.getElementById('room-display').textContent=roomId;
       peer.on('connection',c=>{conn=c;setupConn();});
     });
-    peer.on('error',e=>{setStatus('ERREUR: '+e.type);showScreen('lobby');});
+    peer.on('error',e=>{setStatus('ERROR: '+e.type);showScreen('lobby');});
   });
 }
 
 function joinAsP2(){
-  roomId=getRoom(); if(roomId.length<3){setStatus('CODE TROP COURT !');return;}
-  myRole='p2'; setStatus('Connexion à la salle...');
+  roomId=getRoom(); if(roomId.length<3){setStatus('CODE TOO SHORT!');return;}
+  myRole='p2'; setStatus('Joining room...');
   loadPeerJS(()=>{
     peer=new Peer('pacman-'+roomId+'-p2',{debug:0});
     peer.on('open',()=>{
       conn=peer.connect('pacman-'+roomId+'-p1',{reliable:true});
       setupConn();
     });
-    peer.on('error',()=>{setStatus('IMPOSSIBLE. Vérifie le code.');showScreen('lobby');});
+    peer.on('error',()=>{setStatus('CANNOT JOIN. Check the code.');showScreen('lobby');});
   });
 }
 
@@ -365,21 +398,21 @@ function setupConn(){
     peerReady=true;
     if(myRole==='p1'){
       document.getElementById('p2-wait').style.opacity='1';
-      document.getElementById('p2-wait-label').textContent='J2 — CONNECTÉ ✓';
+      document.getElementById('p2-wait-label').textContent='P2 — CONNECTED ✓';
       setTimeout(()=>{
         gameMode='multi';
         document.getElementById('score2-box').style.display='';
-        document.getElementById('lbl1').textContent='🟡 J1';
+        document.getElementById('lbl1').textContent='🟡 P1';
         initGameState();
         showScreen('game-screen');
         setupCanvas();
         sendMsg({type:'start'});
-        showOverlay('PRÊT ?','','DÉMARRER');
+        showOverlay('READY?','','START');
       },600);
     }
   });
   conn.on('data',onMsg);
-  conn.on('close',()=>{if(gameRunning){gameRunning=false;showOverlay('DÉCONNECTÉ','Adversaire parti',null);}});
+  conn.on('close',()=>{if(gameRunning){gameRunning=false;showOverlay('DISCONNECTED','Opponent left the game',null);}});
   conn.on('error',e=>console.warn(e));
 }
 
@@ -389,11 +422,11 @@ function onMsg(data){
   if(data.type==='start'&&myRole==='p2'){
     gameMode='multi';
     document.getElementById('score2-box').style.display='';
-    document.getElementById('lbl1').textContent='🟡 J1';
+    document.getElementById('lbl1').textContent='🟡 P1';
     initGameState();
     showScreen('game-screen');
     setupCanvas();
-    showOverlay('EN ATTENTE…','J1 démarre la partie',null);
+    showOverlay('WAITING…','Waiting for P1 to start',null);
   } else if(data.type==='dir'&&myRole==='p1'&&p2){
     p2.nextDir=data.dir;
   } else if(data.type==='state'&&myRole==='p2'){
@@ -439,13 +472,23 @@ function setupCanvas(){
   ctx=canvas.getContext('2d');
   resizeCanvas();
   window.addEventListener('resize',resizeCanvas);
+  window.addEventListener('orientationchange',()=>setTimeout(resizeCanvas,150));
 }
 
 function resizeCanvas(){
-  const dpad=document.getElementById('dpad');
   const hud=document.getElementById('hud');
-  const avH=window.innerHeight-hud.offsetHeight-dpad.offsetHeight;
-  const avW=window.innerWidth;
+  const dpad=document.getElementById('dpad');
+  const landscape=window.innerWidth>window.innerHeight;
+  let avW,avH;
+  if(landscape){
+    // dpad is on the right
+    avW=window.innerWidth-dpad.offsetWidth;
+    avH=window.innerHeight-hud.offsetHeight;
+  } else {
+    // dpad is below
+    avW=window.innerWidth;
+    avH=window.innerHeight-hud.offsetHeight-dpad.offsetHeight;
+  }
   TILE=Math.floor(Math.min(avW/COLS,avH/ROWS));
   canvas.width=COLS*TILE; canvas.height=ROWS*TILE;
   canvas.style.width=canvas.width+'px';
@@ -537,8 +580,8 @@ function checkGhostHit(pac,role){
         if(role==='p1')score1+=200;else score2+=200;
       } else {
         pac.dead=true;
-        if(role==='p1'){lives1--;if(lives1<=0){endGame(gameMode==='solo'?'GAME OVER':'J1 ÉLIMINÉ',gameMode==='solo'?'Score: '+score1:'J2 GAGNE !');return;}}
-        else{lives2--;if(lives2<=0){endGame('J2 ÉLIMINÉ','J1 GAGNE !');return;}}
+        if(role==='p1'){lives1--;if(lives1<=0){endGame(gameMode==='solo'?'GAME OVER':'P1 OUT',gameMode==='solo'?'Score: '+score1:'P2 WINS!');return;}}
+        else{lives2--;if(lives2<=0){endGame('P2 OUT','P1 WINS!');return;}}
         setTimeout(()=>{
           pac.dead=false;pac.x=role==='p1'?1:19;pac.y=16;pac.dir='left';pac.nextDir='left';
         },1500);
@@ -571,7 +614,7 @@ function nextLevel(){
     ghosts=GHOST_DEFS.map(makeGhost);
     powerMode=false;powerTimer=0;
     updateHUD();
-    showOverlay('NIVEAU '+level,'',gameMode==='solo'||myRole==='p1'?'CONTINUER':null);
+    showOverlay('LEVEL '+level,'',gameMode==='solo'||myRole==='p1'?'CONTINUE':null);
     if(myRole==='p1') document.getElementById('ov-btn').onclick=()=>{hideOverlay();startGameLoop();};
   },500);
 }
@@ -581,7 +624,7 @@ function endGame(title,sub){
   cancelAnimationFrame(animFrame);
   if(gameMode==='multi'&&myRole==='p1') sendMsg({type:'gameover',title,sub});
   const showBtn=gameMode==='solo'||myRole==='p1';
-  showOverlay(title,sub,showBtn?'REJOUER':null);
+  showOverlay(title,sub,showBtn?'PLAY AGAIN':null);
   if(showBtn) document.getElementById('ov-btn').onclick=restartGame;
 }
 
@@ -610,7 +653,7 @@ function updateHUD(){
   document.getElementById('lives-display').textContent=
     gameMode==='multi'?h.repeat(Math.max(0,lives1))+' '+h.repeat(Math.max(0,lives2))
                       :h.repeat(Math.max(0,lives1));
-  document.getElementById('level-display').textContent='NIV '+level;
+  document.getElementById('level-display').textContent='LVL '+level;
 }
 
 // ═══════════════════════════════════════════════════
