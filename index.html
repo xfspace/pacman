@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>PAC-MAN</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  :root {
+    --yellow:#FFD700; --blue:#0033FF; --pink:#FF69B4;
+    --cyan:#00FFFF; --dark:#000011; --wall:#1a1aff; --dot:#FFB8AE;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;touch-action:none;}
+  body{background:var(--dark);font-family:'Press Start 2P',monospace;color:#fff;
+       height:100dvh;overflow:hidden;display:flex;flex-direction:column;align-items:center;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;align-items:center;justify-content:center;
+width:100%;height:100dvh;padding:20px;text-align:center;gap:14px;}
+.screen.active{display:flex;}
+
+/* ── TITLE ── */
+h1{font-size:clamp(22px,7vw,40px);color:var(–yellow);
+text-shadow:0 0 20px var(–yellow),0 0 40px rgba(255,215,0,.4);
+animation:flicker 2.5s infinite;letter-spacing:2px;}
+@keyframes flicker{0%,100%{opacity:1}92%{opacity:1}93%{opacity:.5}95%{opacity:1}97%{opacity:.7}99%{opacity:1}}
+.subtitle{font-size:9px;color:var(–cyan);letter-spacing:1px;margin-top:-6px;}
+
+/* ── CARDS ── */
+.mode-card{background:rgba(255,255,255,.05);border:2px solid var(–blue);border-radius:14px;
+padding:18px;width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;}
+.mode-card h2{font-size:11px;color:var(–yellow);margin-bottom:2px;}
+.mode-card p{font-size:7px;color:#888;line-height:1.6;}
+
+/* ── BUTTONS ── */
+.btn{font-family:‘Press Start 2P’,monospace;font-size:10px;padding:14px 20px;border:none;
+border-radius:8px;cursor:pointer;letter-spacing:1px;width:100%;transition:transform .1s,box-shadow .1s;}
+.btn:active{transform:scale(.96);}
+.btn-yellow{background:var(–yellow);color:#000;box-shadow:0 4px 0 #8B6914;}
+.btn-yellow:active{box-shadow:none;transform:translateY(4px);}
+.btn-blue{background:var(–blue);color:#fff;box-shadow:0 4px 0 #001a88;}
+.btn-blue:active{box-shadow:none;transform:translateY(4px);}
+.btn-pink{background:var(–pink);color:#000;box-shadow:0 4px 0 #8B3060;}
+.btn-pink:active{box-shadow:none;transform:translateY(4px);}
+.btn-gray{background:#333;color:#aaa;box-shadow:0 4px 0 #111;}
+.btn-gray:active{box-shadow:none;transform:translateY(4px);}
+.divider{color:#444;font-size:8px;}
+
+/* ── INPUTS ── */
+input[type=text]{background:rgba(0,0,0,.6);border:2px solid var(–blue);border-radius:8px;
+color:var(–yellow);font-family:‘Press Start 2P’,monospace;font-size:14px;padding:12px;
+width:100%;outline:none;text-transform:uppercase;letter-spacing:3px;}
+input[type=text]:focus{border-color:var(–cyan);box-shadow:0 0 10px var(–cyan);}
+label{font-size:7px;color:#888;text-align:left;}
+
+/* ── STATUS ── */
+#status-msg{font-size:9px;color:var(–cyan);min-height:18px;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── WAITING ── */
+.pip{width:14px;height:14px;border-radius:50%;}
+.pip.p1{background:var(–yellow);box-shadow:0 0 8px var(–yellow);}
+.pip.p2{background:var(–pink);box-shadow:0 0 8px var(–pink);}
+.player-indicator{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);
+border-radius:8px;padding:10px 14px;font-size:9px;}
+.dots::after{content:’.’;animation:dotdot 1.5s infinite;}
+@keyframes dotdot{0%{content:’.’}33%{content:’..’}66%{content:’…’}100%{content:’.’}}
+
+/* ── GAME ── */
+#game-screen{display:none;flex-direction:column;width:100%;height:100dvh;
+background:var(–dark);position:relative;}
+#game-screen.active{display:flex;}
+
+#hud{display:flex;justify-content:space-between;align-items:center;
+padding:6px 12px;background:rgba(0,0,0,.8);border-bottom:2px solid var(–blue);flex-shrink:0;}
+.score-box{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.score-label{font-size:6px;color:#888;}
+.score-val{font-size:13px;}
+.score-val.p1{color:var(–yellow);}
+.score-val.p2{color:var(–pink);}
+#hud-mid{display:flex;flex-direction:column;align-items:center;gap:2px;}
+#lives-display{font-size:8px;}
+#level-display{font-size:7px;color:#666;}
+
+canvas{flex:1;display:block;width:100%;image-rendering:pixelated;}
+
+#dpad{display:flex;flex-direction:column;align-items:center;
+padding:6px 0 env(safe-area-inset-bottom,6px);flex-shrink:0;background:rgba(0,0,0,.5);}
+.dpad-row{display:flex;gap:4px;}
+.dpad-btn{width:62px;height:62px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);
+border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;
+cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .1s;}
+.dpad-btn:active,.dpad-btn.pressed{background:rgba(255,255,255,.3);border-color:var(–yellow);}
+.dpad-center{background:transparent!important;border:none!important;}
+
+/* ── OVERLAY ── */
+#overlay{position:absolute;inset:0;background:rgba(0,0,11,.88);display:flex;flex-direction:column;
+align-items:center;justify-content:center;gap:14px;z-index:10;backdrop-filter:blur(4px);}
+#overlay.hidden{display:none;}
+#overlay h2{font-size:18px;color:var(–yellow);text-shadow:0 0 20px var(–yellow);}
+#overlay p{font-size:9px;color:#ccc;max-width:260px;}
+#overlay .btn{max-width:220px;}
+
+/* bg glow */
+body::before{content:’’;position:fixed;inset:0;pointer-events:none;z-index:-1;
+background:radial-gradient(ellipse at 20% 50%,rgba(0,0,60,.6) 0%,transparent 60%),
+radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
+</style>
+
+</head>
+<body>
+
+<!-- ══════════ MENU PRINCIPAL ══════════ -->
+
+<div class="screen active" id="menu">
+  <h1>PAC-MAN</h1>
+  <div class="subtitle">★ ARCADE ★</div>
+
+  <div class="mode-card">
+    <h2>🟡 1 JOUEUR</h2>
+    <p>Joue seul contre les fantômes. Mange toutes les pac-gommes !</p>
+    <div class="btn btn-yellow" onclick="startSolo()">JOUER SOLO</div>
+  </div>
+
+  <div class="mode-card">
+    <h2>💗 2 JOUEURS</h2>
+    <p>Joue en réseau depuis deux iPhones différents. Partage un code de salle.</p>
+    <div class="btn btn-pink" onclick="showScreen('lobby')">MULTIJOUEUR</div>
+  </div>
+</div>
+
+<!-- ══════════ LOBBY ══════════ -->
+
+<div class="screen" id="lobby">
+  <h1>PAC-MAN</h1>
+  <div class="subtitle">★ 2 JOUEURS ★</div>
+
+  <div class="mode-card">
+    <label>CODE DE SALLE (partage-le à ton ami)</label>
+    <input type="text" id="room-input" maxlength="6" placeholder="EX: ABC123">
+    <div style="font-size:7px;color:var(--cyan);cursor:pointer;text-align:right;" onclick="generateRoom()">↻ GÉNÉRER UN CODE</div>
+    <div class="btn btn-yellow" onclick="joinAsP1()">🟡 JOUEUR 1 (HÔTE)</div>
+    <div class="divider">— ou —</div>
+    <div class="btn btn-pink" onclick="joinAsP2()">💗 JOUEUR 2 (REJOINDRE)</div>
+  </div>
+
+  <div id="status-msg">ENTREZ UN CODE DE SALLE</div>
+  <div class="btn btn-gray" style="max-width:200px;" onclick="showScreen('menu')">← RETOUR</div>
+</div>
+
+<!-- ══════════ WAITING ══════════ -->
+
+<div class="screen" id="waiting">
+  <div style="font-size:40px">👾</div>
+  <div style="font-size:12px;color:var(--yellow)">CODE DE SALLE</div>
+  <div id="room-display" style="font-size:26px;color:var(--cyan);letter-spacing:6px;text-shadow:0 0 20px var(--cyan)">------</div>
+  <div style="font-size:8px;color:#aaa" class="dots">EN ATTENTE DU 2ème JOUEUR</div>
+  <div style="font-size:7px;color:#555">Partage ce code avec ton adversaire</div>
+  <div class="player-indicator"><div class="pip p1"></div><span>J1 (Pac-Man Jaune) — MOI</span></div>
+  <div class="player-indicator" id="p2-wait" style="opacity:.4">
+    <div class="pip p2"></div><span id="p2-wait-label">J2 (Pac-Man Rose) — EN ATTENTE…</span>
+  </div>
+  <div class="btn btn-gray" style="max-width:200px;margin-top:10px;" onclick="backToMenu()">← ANNULER</div>
+</div>
+
+<!-- ══════════ GAME ══════════ -->
+
+<div id="game-screen">
+  <div id="hud">
+    <div class="score-box">
+      <div class="score-label" id="lbl1">🟡 SCORE</div>
+      <div class="score-val p1" id="score1">0</div>
+    </div>
+    <div id="hud-mid">
+      <div id="lives-display"></div>
+      <div id="level-display">NIV 1</div>
+    </div>
+    <div class="score-box" id="score2-box">
+      <div class="score-label">J2 💗</div>
+      <div class="score-val p2" id="score2">0</div>
+    </div>
+  </div>
+
+<canvas id="gc"></canvas>
+
+  <div id="dpad">
+    <div class="dpad-row">
+      <div class="dpad-btn dpad-center"></div>
+      <div class="dpad-btn" data-dir="up">▲</div>
+      <div class="dpad-btn dpad-center"></div>
+    </div>
+    <div class="dpad-row">
+      <div class="dpad-btn" data-dir="left">◀</div>
+      <div class="dpad-btn dpad-center"></div>
+      <div class="dpad-btn" data-dir="right">▶</div>
+    </div>
+    <div class="dpad-row">
+      <div class="dpad-btn dpad-center"></div>
+      <div class="dpad-btn" data-dir="down">▼</div>
+      <div class="dpad-btn dpad-center"></div>
+    </div>
+  </div>
+
+  <div id="overlay" class="hidden">
+    <h2 id="ov-title">PRÊT ?</h2>
+    <p id="ov-sub"></p>
+    <div class="btn btn-yellow hidden" id="ov-btn" onclick="overlayAction()">DÉMARRER</div>
+    <div class="btn btn-gray" id="ov-menu" onclick="backToMenu()" style="max-width:220px;">MENU</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  MAP
+// ═══════════════════════════════════════════════════
+const MAPDEF=[
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+  [1,3,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,3,1],
+  [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
+  [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,1,0,1],
+  [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
+  [1,1,1,1,0,1,1,1,2,2,2,2,2,1,1,1,0,1,1,1,1],
+  [1,1,1,1,0,1,2,2,2,2,2,2,2,2,2,1,0,1,1,1,1],
+  [1,1,1,1,0,1,2,1,1,4,4,4,1,1,2,1,0,1,1,1,1],
+  [2,2,2,2,0,2,2,1,2,2,2,2,2,1,2,2,0,2,2,2,2],
+  [1,1,1,1,0,1,2,1,1,1,1,1,1,1,2,1,0,1,1,1,1],
+  [1,1,1,1,0,1,2,2,2,2,2,2,2,2,2,1,0,1,1,1,1],
+  [1,1,1,1,0,1,2,1,1,1,1,1,1,1,2,1,0,1,1,1,1],
+  [1,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,1],
+  [1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1,0,1,1,0,1],
+  [1,3,0,1,0,0,0,0,0,0,2,0,0,0,0,0,0,1,0,3,1],
+  [1,1,0,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1,0,1,1],
+  [1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1],
+  [1,0,1,1,1,1,1,1,0,1,1,1,0,1,1,1,1,1,1,0,1],
+  [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+];
+const ROWS=MAPDEF.length, COLS=MAPDEF[0].length;
+
+const GHOST_DEFS=[
+  {x:9, y:9, color:'#FF0000'},
+  {x:10,y:9, color:'#FFB8FF'},
+  {x:11,y:9, color:'#00FFFF'},
+  {x:10,y:10,color:'#FFB852'},
+];
+
+// ─── MODE ───
+let gameMode = null; // 'solo' | 'multi'
+let myRole   = null; // 'p1' | 'p2'
+let roomId   = '';
+let conn=null, peer=null, peerReady=false;
+
+// ─── STATE ───
+let map,dots,score1,score2,lives1,lives2,level;
+let p1,p2,ghosts;
+let gameRunning=false,powerMode=false,powerTimer=0;
+let animFrame,lastTime=0;
+
+// ─── CANVAS ───
+let canvas,ctx,TILE;
+
+// ═══════════════════════════════════════════════════
+//  SCREENS
+// ═══════════════════════════════════════════════════
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('game-screen').classList.remove('active');
+  if(id==='game-screen') document.getElementById('game-screen').classList.add('active');
+  else document.getElementById(id).classList.add('active');
+}
+
+function backToMenu(){
+  gameRunning=false;
+  cancelAnimationFrame(animFrame);
+  if(peer){peer.destroy();peer=null;}
+  conn=null; peerReady=false; gameMode=null;
+  showScreen('menu');
+}
+
+function setStatus(m){document.getElementById('status-msg').textContent=m;}
+
+// ═══════════════════════════════════════════════════
+//  SOLO
+// ═══════════════════════════════════════════════════
+function startSolo(){
+  gameMode='solo'; myRole='p1';
+  document.getElementById('score2-box').style.display='none';
+  document.getElementById('lbl1').textContent='🟡 SCORE';
+  initGameState();
+  showScreen('game-screen');
+  setupCanvas();
+  showOverlay('PRÊT ?','Mange toutes les pac-gommes !','DÉMARRER');
+}
+
+// ═══════════════════════════════════════════════════
+//  MULTIPLAYER – PEER
+// ═══════════════════════════════════════════════════
+function generateRoom(){
+  const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let id=''; for(let i=0;i<6;i++) id+=c[Math.floor(Math.random()*c.length)];
+  document.getElementById('room-input').value=id;
+}
+
+function getRoom(){
+  return (document.getElementById('room-input').value||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+}
+
+function loadPeerJS(cb){
+  if(window.Peer){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js';
+  s.onload=cb; document.head.appendChild(s);
+}
+
+function joinAsP1(){
+  roomId=getRoom(); if(roomId.length<3){setStatus('CODE TROP COURT !');return;}
+  myRole='p1';
+  loadPeerJS(()=>{
+    setStatus('Connexion...');
+    peer=new Peer('pacman-'+roomId+'-p1',{debug:0});
+    peer.on('open',()=>{
+      showScreen('waiting');
+      document.getElementById('room-display').textContent=roomId;
+      peer.on('connection',c=>{conn=c;setupConn();});
+    });
+    peer.on('error',e=>{setStatus('ERREUR: '+e.type);showScreen('lobby');});
+  });
+}
+
+function joinAsP2(){
+  roomId=getRoom(); if(roomId.length<3){setStatus('CODE TROP COURT !');return;}
+  myRole='p2'; setStatus('Connexion à la salle...');
+  loadPeerJS(()=>{
+    peer=new Peer('pacman-'+roomId+'-p2',{debug:0});
+    peer.on('open',()=>{
+      conn=peer.connect('pacman-'+roomId+'-p1',{reliable:true});
+      setupConn();
+    });
+    peer.on('error',()=>{setStatus('IMPOSSIBLE. Vérifie le code.');showScreen('lobby');});
+  });
+}
+
+function setupConn(){
+  conn.on('open',()=>{
+    peerReady=true;
+    if(myRole==='p1'){
+      document.getElementById('p2-wait').style.opacity='1';
+      document.getElementById('p2-wait-label').textContent='J2 — CONNECTÉ ✓';
+      setTimeout(()=>{
+        gameMode='multi';
+        document.getElementById('score2-box').style.display='';
+        document.getElementById('lbl1').textContent='🟡 J1';
+        initGameState();
+        showScreen('game-screen');
+        setupCanvas();
+        sendMsg({type:'start'});
+        showOverlay('PRÊT ?','','DÉMARRER');
+      },600);
+    }
+  });
+  conn.on('data',onMsg);
+  conn.on('close',()=>{if(gameRunning){gameRunning=false;showOverlay('DÉCONNECTÉ','Adversaire parti',null);}});
+  conn.on('error',e=>console.warn(e));
+}
+
+function sendMsg(data){if(conn&&conn.open){try{conn.send(data);}catch(e){}}}
+
+function onMsg(data){
+  if(data.type==='start'&&myRole==='p2'){
+    gameMode='multi';
+    document.getElementById('score2-box').style.display='';
+    document.getElementById('lbl1').textContent='🟡 J1';
+    initGameState();
+    showScreen('game-screen');
+    setupCanvas();
+    showOverlay('EN ATTENTE…','J1 démarre la partie',null);
+  } else if(data.type==='dir'&&myRole==='p1'&&p2){
+    p2.nextDir=data.dir;
+  } else if(data.type==='state'&&myRole==='p2'){
+    applyState(data.state);
+  } else if(data.type==='countdown'){
+    showOverlay(data.val>0?String(data.val):'GO !','',null);
+    if(data.val===0) setTimeout(()=>{hideOverlay();gameRunning=true;},300);
+  } else if(data.type==='restart'&&myRole==='p2'){
+    initGameState(); hideOverlay();
+  } else if(data.type==='gameover'){
+    gameRunning=false; showOverlay(data.title,data.sub,null);
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  GAME INIT
+// ═══════════════════════════════════════════════════
+function initGameState(){
+  map=MAPDEF.map(r=>[...r]);
+  dots=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(map[r][c]===0||map[r][c]===3) dots++;
+  score1=0; score2=0; lives1=3; lives2=3; level=1;
+  powerMode=false; powerTimer=0;
+  p1=makePac(1,16,'#FFD700','p1');
+  p2=gameMode==='multi'?makePac(19,16,'#FF69B4','p2'):null;
+  ghosts=GHOST_DEFS.map(makeGhost);
+  updateHUD();
+}
+
+function makePac(x,y,col,role){
+  return {x,y,nextDir:'left',dir:'left',color:col,role,mouthAngle:.2,mouthDir:1,dead:false,t:0};
+}
+
+function makeGhost(gd){
+  return {x:gd.x,y:gd.y,color:gd.color,dir:'up',frightened:false,eaten:false,t:0};
+}
+
+// ═══════════════════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════════════════
+function setupCanvas(){
+  canvas=document.getElementById('gc');
+  ctx=canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize',resizeCanvas);
+}
+
+function resizeCanvas(){
+  const dpad=document.getElementById('dpad');
+  const hud=document.getElementById('hud');
+  const avH=window.innerHeight-hud.offsetHeight-dpad.offsetHeight;
+  const avW=window.innerWidth;
+  TILE=Math.floor(Math.min(avW/COLS,avH/ROWS));
+  canvas.width=COLS*TILE; canvas.height=ROWS*TILE;
+  canvas.style.width=canvas.width+'px';
+  canvas.style.height=canvas.height+'px';
+  if(ctx) draw();
+}
+
+// ═══════════════════════════════════════════════════
+//  LOOP
+// ═══════════════════════════════════════════════════
+function gameLoop(ts){
+  if(!gameRunning){return;}
+  const dt=Math.min((ts-lastTime)/1000,.05);
+  lastTime=ts;
+  update(dt);
+  draw();
+  if(gameMode==='multi'&&myRole==='p1') sendStateToP2();
+  animFrame=requestAnimationFrame(gameLoop);
+}
+
+// ── P2 render loop ──
+function p2RenderLoop(){
+  if(gameMode==='multi'&&myRole==='p2'&&ctx) draw();
+  requestAnimationFrame(p2RenderLoop);
+}
+p2RenderLoop();
+
+// ═══════════════════════════════════════════════════
+//  UPDATE
+// ═══════════════════════════════════════════════════
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const OPP={up:'down',down:'up',left:'right',right:'left'};
+const SPEED=4.5;
+
+function tryMove(pac,d){
+  const[dx,dy]=DIRS[d];
+  const nx=(pac.x+dx+COLS)%COLS, ny=(pac.y+dy+ROWS)%ROWS;
+  if(map[ny][nx]===1) return false;
+  pac.x=nx; pac.y=ny; pac.dir=d; return true;
+}
+
+function movePac(pac,dt){
+  if(!pac||pac.dead) return;
+  pac.t+=dt*SPEED;
+  if(pac.t>=1){ pac.t-=1; if(!tryMove(pac,pac.nextDir)) tryMove(pac,pac.dir); }
+  pac.mouthAngle+=dt*7*pac.mouthDir;
+  if(pac.mouthAngle>.28) pac.mouthDir=-1;
+  if(pac.mouthAngle<.02) pac.mouthDir=1;
+}
+
+function moveGhost(g,dt){
+  if(g.eaten) return;
+  const spd=g.frightened?2.8:3.5+(level*.3);
+  g.t+=dt*spd;
+  if(g.t>=1){
+    g.t-=1;
+    const[dx,dy]=DIRS[g.dir];
+    const nx=(g.x+dx+COLS)%COLS, ny=(g.y+dy+ROWS)%ROWS;
+    if(map[ny][nx]!==1){g.x=nx;g.y=ny;}
+    const possible=['up','down','left','right'].filter(d=>{
+      if(d===OPP[g.dir]) return false;
+      const[ddx,ddy]=DIRS[d];
+      return map[(g.y+ddy+ROWS)%ROWS][(g.x+ddx+COLS)%COLS]!==1;
+    });
+    g.dir=possible.length?possible[Math.floor(Math.random()*possible.length)]:OPP[g.dir];
+  }
+}
+
+function checkEat(pac,role){
+  if(!pac||pac.dead) return;
+  const v=map[pac.y][pac.x];
+  if(v===0){map[pac.y][pac.x]=2;dots--;if(role==='p1')score1+=10;else score2+=10;}
+  if(v===3){
+    map[pac.y][pac.x]=2;dots--;
+    if(role==='p1')score1+=50;else score2+=50;
+    powerMode=true;powerTimer=8;
+    ghosts.forEach(g=>{g.frightened=true;g.eaten=false;});
+  }
+  if(dots<=0) nextLevel();
+}
+
+function checkGhostHit(pac,role){
+  if(!pac||pac.dead) return;
+  for(const g of ghosts){
+    if(g.eaten) continue;
+    if(g.x===pac.x&&g.y===pac.y){
+      if(g.frightened){
+        g.eaten=true;g.frightened=false;
+        if(role==='p1')score1+=200;else score2+=200;
+      } else {
+        pac.dead=true;
+        if(role==='p1'){lives1--;if(lives1<=0){endGame(gameMode==='solo'?'GAME OVER':'J1 ÉLIMINÉ',gameMode==='solo'?'Score: '+score1:'J2 GAGNE !');return;}}
+        else{lives2--;if(lives2<=0){endGame('J2 ÉLIMINÉ','J1 GAGNE !');return;}}
+        setTimeout(()=>{
+          pac.dead=false;pac.x=role==='p1'?1:19;pac.y=16;pac.dir='left';pac.nextDir='left';
+        },1500);
+      }
+    }
+  }
+}
+
+function update(dt){
+  movePac(p1,dt);
+  if(gameMode==='multi') movePac(p2,dt);
+  ghosts.forEach(g=>moveGhost(g,dt));
+  checkEat(p1,'p1');
+  if(gameMode==='multi') checkEat(p2,'p2');
+  checkGhostHit(p1,'p1');
+  if(gameMode==='multi') checkGhostHit(p2,'p2');
+  if(powerMode){powerTimer-=dt;if(powerTimer<=0){powerMode=false;ghosts.forEach(g=>g.frightened=false);}}
+  updateHUD();
+}
+
+function nextLevel(){
+  level++;
+  gameRunning=false;
+  cancelAnimationFrame(animFrame);
+  setTimeout(()=>{
+    map=MAPDEF.map(r=>[...r]);
+    dots=0; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) if(map[r][c]===0||map[r][c]===3) dots++;
+    p1.x=1;p1.y=16;p1.dir='left';p1.nextDir='left';p1.dead=false;
+    if(p2){p2.x=19;p2.y=16;p2.dir='left';p2.nextDir='left';p2.dead=false;}
+    ghosts=GHOST_DEFS.map(makeGhost);
+    powerMode=false;powerTimer=0;
+    updateHUD();
+    showOverlay('NIVEAU '+level,'',gameMode==='solo'||myRole==='p1'?'CONTINUER':null);
+    if(myRole==='p1') document.getElementById('ov-btn').onclick=()=>{hideOverlay();startGameLoop();};
+  },500);
+}
+
+function endGame(title,sub){
+  gameRunning=false;
+  cancelAnimationFrame(animFrame);
+  if(gameMode==='multi'&&myRole==='p1') sendMsg({type:'gameover',title,sub});
+  const showBtn=gameMode==='solo'||myRole==='p1';
+  showOverlay(title,sub,showBtn?'REJOUER':null);
+  if(showBtn) document.getElementById('ov-btn').onclick=restartGame;
+}
+
+function restartGame(){
+  if(gameMode==='multi') sendMsg({type:'restart'});
+  initGameState();
+  hideOverlay();
+  if(gameMode==='solo'||myRole==='p1'){
+    startGameLoop();
+  }
+}
+
+function startGameLoop(){
+  gameRunning=true;
+  lastTime=performance.now();
+  animFrame=requestAnimationFrame(gameLoop);
+}
+
+// ═══════════════════════════════════════════════════
+//  HUD
+// ═══════════════════════════════════════════════════
+function updateHUD(){
+  document.getElementById('score1').textContent=score1||0;
+  document.getElementById('score2').textContent=score2||0;
+  const h='❤️';
+  document.getElementById('lives-display').textContent=
+    gameMode==='multi'?h.repeat(Math.max(0,lives1))+' '+h.repeat(Math.max(0,lives2))
+                      :h.repeat(Math.max(0,lives1));
+  document.getElementById('level-display').textContent='NIV '+level;
+}
+
+// ═══════════════════════════════════════════════════
+//  DRAW
+// ═══════════════════════════════════════════════════
+function draw(){
+  if(!ctx||!TILE) return;
+  ctx.fillStyle='#000011';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  drawMap(); drawPac(p1); if(p2) drawPac(p2);
+  ghosts.forEach(drawGhost);
+}
+
+function drawMap(){
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+    const v=map[r][c],x=c*TILE,y=r*TILE;
+    if(v===1){
+      ctx.fillStyle='#1a1aff'; ctx.fillRect(x,y,TILE,TILE);
+      ctx.fillStyle='rgba(80,80,255,.25)'; ctx.fillRect(x+1,y+1,TILE-2,TILE-2);
+    } else if(v===0){
+      const cx=x+TILE/2,cy=y+TILE/2,rr=TILE*.09;
+      ctx.fillStyle='#FFB8AE'; ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.fill();
+    } else if(v===3){
+      const cx=x+TILE/2,cy=y+TILE/2,rr=TILE*.22;
+      ctx.fillStyle='#FFD700'; ctx.shadowColor='#FFD700'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(cx,cy,rr,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+    }
+  }
+}
+
+function drawPac(pac){
+  if(!pac||pac.dead) return;
+  const cx=pac.x*TILE+TILE/2,cy=pac.y*TILE+TILE/2,r=TILE*.42;
+  const a=pac.mouthAngle||.2;
+  const rot={right:0,left:Math.PI,up:-Math.PI/2,down:Math.PI/2}[pac.dir]||0;
+  ctx.save(); ctx.translate(cx,cy); ctx.rotate(rot);
+  ctx.fillStyle=pac.color; ctx.shadowColor=pac.color; ctx.shadowBlur=12;
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,r,a,Math.PI*2-a); ctx.closePath(); ctx.fill();
+  ctx.shadowBlur=0; ctx.restore();
+  if(gameMode==='multi'){
+    ctx.fillStyle='rgba(255,255,255,.8)';
+    ctx.font=`bold ${TILE*.28}px monospace`; ctx.textAlign='center';
+    ctx.fillText(pac.role==='p1'?'1':'2',cx,cy-r-2);
+  }
+}
+
+function drawGhost(g){
+  if(g.eaten) return;
+  const cx=g.x*TILE+TILE/2,cy=g.y*TILE+TILE/2,r=TILE*.4;
+  const col=g.frightened?(powerTimer<2&&Math.floor(powerTimer*4)%2?'#fff':'#0000ff'):g.color;
+  ctx.fillStyle=col; ctx.shadowColor=col; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.arc(cx,cy-r*.1,r,Math.PI,0);
+  const bot=cy+r*.9; ctx.lineTo(cx+r,bot);
+  const segs=3,segW=r*2/segs;
+  for(let i=segs;i>=0;i--){const sx=cx-r+i*segW,sy=i%2===0?bot:bot-r*.3;ctx.lineTo(sx,sy);}
+  ctx.closePath(); ctx.fill(); ctx.shadowBlur=0;
+  if(!g.frightened){
+    ctx.fillStyle='white';
+    ctx.beginPath();ctx.arc(cx-r*.3,cy-r*.2,r*.18,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+r*.3,cy-r*.2,r*.18,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#00a';
+    ctx.beginPath();ctx.arc(cx-r*.28,cy-r*.15,r*.1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(cx+r*.32,cy-r*.15,r*.1,0,Math.PI*2);ctx.fill();
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  STATE SYNC
+// ═══════════════════════════════════════════════════
+function getState(){
+  return {
+    map:map.map(r=>[...r]),score1,score2,lives1,lives2,level,
+    p1:{x:p1.x,y:p1.y,dir:p1.dir,dead:p1.dead,mouthAngle:p1.mouthAngle},
+    p2:p2?{x:p2.x,y:p2.y,dir:p2.dir,dead:p2.dead,mouthAngle:p2.mouthAngle}:null,
+    ghosts:ghosts.map(g=>({x:g.x,y:g.y,dir:g.dir,frightened:g.frightened,eaten:g.eaten,color:g.color})),
+    powerMode,powerTimer,gameRunning,
+  };
+}
+
+function applyState(s){
+  map=s.map;score1=s.score1;score2=s.score2;lives1=s.lives1;lives2=s.lives2;level=s.level;
+  if(p1) Object.assign(p1,s.p1);
+  if(p2&&s.p2) Object.assign(p2,s.p2);
+  ghosts.forEach((g,i)=>{if(s.ghosts[i])Object.assign(g,s.ghosts[i]);});
+  powerMode=s.powerMode;powerTimer=s.powerTimer;gameRunning=s.gameRunning;
+  updateHUD();
+}
+
+let syncTick=0;
+function sendStateToP2(){syncTick++;if(syncTick%2===0)sendMsg({type:'state',state:getState()});}
+
+// ═══════════════════════════════════════════════════
+//  OVERLAY
+// ═══════════════════════════════════════════════════
+let overlayActionFn=null;
+function showOverlay(title,sub,btnLabel){
+  document.getElementById('ov-title').textContent=title;
+  document.getElementById('ov-sub').textContent=sub;
+  const btn=document.getElementById('ov-btn');
+  if(btnLabel){btn.textContent=btnLabel;btn.classList.remove('hidden');}
+  else btn.classList.add('hidden');
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function hideOverlay(){document.getElementById('overlay').classList.add('hidden');}
+
+function overlayAction(){
+  hideOverlay();
+  if(gameMode==='solo'||myRole==='p1') beginCountdown();
+}
+
+function beginCountdown(){
+  let c=3;
+  const tick=()=>{
+    if(c>0){
+      showOverlay(String(c),'',null);
+      if(gameMode==='multi') sendMsg({type:'countdown',val:c});
+      c--;setTimeout(tick,900);
+    } else {
+      showOverlay('GO !','',null);
+      if(gameMode==='multi') sendMsg({type:'countdown',val:0});
+      setTimeout(()=>{hideOverlay();startGameLoop();},400);
+    }
+  };
+  tick();
+}
+
+// ═══════════════════════════════════════════════════
+//  INPUT
+// ═══════════════════════════════════════════════════
+function handleDir(dir){
+  if(myRole==='p1'||gameMode==='solo'){if(p1)p1.nextDir=dir;}
+  else{sendMsg({type:'dir',dir});}
+}
+
+document.querySelectorAll('.dpad-btn[data-dir]').forEach(btn=>{
+  const dir=btn.dataset.dir;
+  btn.addEventListener('touchstart',e=>{e.preventDefault();btn.classList.add('pressed');handleDir(dir);},{passive:false});
+  btn.addEventListener('touchend',e=>{e.preventDefault();btn.classList.remove('pressed');},{passive:false});
+  btn.addEventListener('mousedown',()=>{btn.classList.add('pressed');handleDir(dir);});
+  btn.addEventListener('mouseup',()=>btn.classList.remove('pressed'));
+});
+
+let tx0,ty0;
+document.getElementById('gc').addEventListener('touchstart',e=>{tx0=e.touches[0].clientX;ty0=e.touches[0].clientY;},{passive:true});
+document.getElementById('gc').addEventListener('touchend',e=>{
+  const dx=e.changedTouches[0].clientX-tx0,dy=e.changedTouches[0].clientY-ty0;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<20)return;
+  handleDir(Math.abs(dx)>Math.abs(dy)?(dx>0?'right':'left'):(dy>0?'down':'up'));
+},{passive:true});
+
+document.addEventListener('keydown',e=>{
+  const k={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',
+           w:'up',s:'down',a:'left',d:'right'}[e.key];
+  if(k)handleDir(k);
+});
+
+// ── INIT ──
+generateRoom();
+</script>
+
+</body>
+</html>
