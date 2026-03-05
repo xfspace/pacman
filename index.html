@@ -217,13 +217,13 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
     <label>ROOM CODE — share with your friend</label>
     <input type="text" id="room-input" maxlength="6" placeholder="EX: ABC123">
     <div style="font-size:7px;color:var(--cyan);cursor:pointer;text-align:right;" onclick="generateRoom()">↻ GENERATE CODE</div>
-    <div class="btn btn-yellow" onclick="joinAsP1()">🟡 PLAYER 1 — HOST</div>
+    <button onclick="joinAsP1()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:16px 20px;width:100%;background:#FFD700;color:#000;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #8B6914;">🟡 PLAYER 1 — HOST</button>
     <div class="divider">— or —</div>
-    <div class="btn btn-pink" onclick="joinAsP2()">💗 PLAYER 2 — JOIN</div>
+    <button onclick="joinAsP2()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:16px 20px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #8B3060;">💗 PLAYER 2 — JOIN</button>
   </div>
 
   <div id="status-msg">ENTER A ROOM CODE</div>
-  <div class="btn btn-gray" style="max-width:200px;" onclick="showScreen('menu')">← BACK</div>
+  <button onclick="showScreen('menu')" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 20px;width:200px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #111;">← BACK</button>
 </div>
 
 <!-- ══════════ WAITING ══════════ -->
@@ -238,7 +238,7 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
   <div class="player-indicator" id="p2-wait" style="opacity:.4">
     <div class="pip p2"></div><span id="p2-wait-label">P2 (Pink Pac-Man) — WAITING…</span>
   </div>
-  <div class="btn btn-gray" style="max-width:200px;margin-top:10px;" onclick="backToMenu()">← CANCEL</div>
+  <button onclick="backToMenu()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 20px;width:200px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #111;margin-top:10px;">← CANCEL</button>
 </div>
 
 <!-- ══════════ GAME ══════════ -->
@@ -286,7 +286,7 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
     <h2 id="ov-title">READY?</h2>
     <p id="ov-sub"></p>
     <button id="ov-btn" onclick="overlayAction()" style="background:#FFD700;color:#000;border:4px solid #fff;border-radius:12px;font-family:'Press Start 2P',monospace;font-size:18px;padding:20px 40px;cursor:pointer;min-width:220px;display:block;">START</button>
-    <div class="btn btn-gray" id="ov-menu" onclick="backToMenu()" style="max-width:220px;">MENU</div>
+    <button onclick="backToMenu()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 20px;width:220px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #111;">MENU</button>
   </div>
 </div>
 
