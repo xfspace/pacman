@@ -153,15 +153,29 @@ letter-spacing:3px;
 }
 #overlay p{font-size:clamp(9px,2.5vw,13px);color:#ccc;max-width:300px;text-align:center;line-height:1.8;}
 #overlay .btn{max-width:320px;font-size:clamp(12px,3vw,18px);padding:20px 32px;}
-#overlay #ov-btn{
-background:var(–yellow);color:#000;
-box-shadow:0 0 30px rgba(255,215,0,.8), 0 6px 0 #8B6914;
-animation:pulse-btn 1.2s infinite;
+#ov-btn{
+background-color:#FFD700 !important;
+color:#000000 !important;
+border:4px solid #ffffff !important;
+border-radius:12px !important;
+font-family:“Press Start 2P”,monospace !important;
+font-size:clamp(14px,3.5vw,20px) !important;
+padding:20px 40px !important;
+width:auto !important;
+min-width:220px !important;
+cursor:pointer;
+box-shadow:0 0 40px rgba(255,215,0,0.9), 0 6px 0 #8B6914 !important;
+-webkit-animation:pulse-btn 1.2s ease-in-out infinite;
+animation:pulse-btn 1.2s ease-in-out infinite;
 }
-#overlay #ov-btn.hidden{display:none;}
+#ov-btn.hidden{display:none !important;}
+@-webkit-keyframes pulse-btn{
+0%,100%{-webkit-transform:scale(1);}
+50%{-webkit-transform:scale(1.06);}
+}
 @keyframes pulse-btn{
-0%,100%{box-shadow:0 0 20px rgba(255,215,0,.6),0 6px 0 #8B6914;}
-50%{box-shadow:0 0 50px rgba(255,215,0,1),0 6px 0 #8B6914;}
+0%,100%{transform:scale(1);}
+50%{transform:scale(1.06);}
 }
 
 /* bg glow */
@@ -271,7 +285,7 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
   <div id="overlay" class="hidden">
     <h2 id="ov-title">READY?</h2>
     <p id="ov-sub"></p>
-    <div class="btn btn-yellow" id="ov-btn" onclick="overlayAction()">START</div>
+    <button id="ov-btn" onclick="overlayAction()" style="background:#FFD700;color:#000;border:4px solid #fff;border-radius:12px;font-family:'Press Start 2P',monospace;font-size:18px;padding:20px 40px;cursor:pointer;min-width:220px;display:block;">START</button>
     <div class="btn btn-gray" id="ov-menu" onclick="backToMenu()" style="max-width:220px;">MENU</div>
   </div>
 </div>
@@ -769,8 +783,8 @@ function showOverlay(title,sub,btnLabel){
   document.getElementById('ov-title').textContent=title;
   document.getElementById('ov-sub').textContent=sub;
   const btn=document.getElementById('ov-btn');
-  if(btnLabel){btn.textContent=btnLabel;btn.classList.remove('hidden');}
-  else btn.classList.add('hidden');
+  if(btnLabel){btn.textContent=btnLabel;btn.style.display='block';}
+  else btn.style.display='none';
   document.getElementById('overlay').classList.remove('hidden');
 }
 function hideOverlay(){document.getElementById('overlay').classList.add('hidden');}
