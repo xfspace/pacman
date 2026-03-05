@@ -213,17 +213,26 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
   <h1>PAC-MAN</h1>
   <div class="subtitle">★ 2 PLAYERS ★</div>
 
-  <div class="lobby-card">
-    <label>ROOM CODE — share with your friend</label>
-    <input type="text" id="room-input" maxlength="6" placeholder="EX: ABC123">
-    <div style="font-size:7px;color:var(--cyan);cursor:pointer;text-align:right;" onclick="generateRoom()">↻ GENERATE CODE</div>
-    <button onclick="joinAsP1()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:16px 20px;width:100%;background:#FFD700;color:#000;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #8B6914;">🟡 PLAYER 1 — HOST</button>
-    <div class="divider">— or —</div>
-    <button onclick="joinAsP2()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:16px 20px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #8B3060;">💗 PLAYER 2 — JOIN</button>
+  <!-- Step 1: choose role -->
+
+  <div id="lobby-choose" style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:320px;">
+    <button onclick="lobbyHostFlow()" style="font-family:'Press Start 2P',monospace;font-size:11px;padding:20px;width:100%;background:#FFD700;color:#000;border:none;border-radius:12px;cursor:pointer;box-shadow:0 5px 0 #8B6914;">🟡 PLAYER 1 — HOST</button>
+    <div style="font-size:8px;color:#555;">— or —</div>
+    <button onclick="lobbyJoinFlow()" style="font-family:'Press Start 2P',monospace;font-size:11px;padding:20px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:12px;cursor:pointer;box-shadow:0 5px 0 #8B3060;">💗 PLAYER 2 — JOIN</button>
   </div>
 
-  <div id="status-msg">ENTER A ROOM CODE</div>
-  <button onclick="showScreen('menu')" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 20px;width:200px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #111;">← BACK</button>
+  <!-- Step 2: code input (Player 2 only) -->
+
+  <div id="lobby-join" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:320px;background:rgba(255,255,255,0.07);border:2px solid #1a1aff;border-radius:14px;padding:20px;">
+    <div style="font-size:9px;color:#aaa;letter-spacing:1px;">ENTER ROOM CODE</div>
+    <input type="text" id="room-input" maxlength="6" placeholder="ABC123"
+      style="background:#fff;color:#000;font-family:'Press Start 2P',monospace;font-size:20px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;text-transform:uppercase;letter-spacing:6px;outline:none;">
+    <button onclick="joinAsP2()" style="font-family:'Press Start 2P',monospace;font-size:11px;padding:18px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:10px;cursor:pointer;box-shadow:0 5px 0 #8B3060;">▶ CONNECT</button>
+    <button onclick="showLobbyChoose()" style="font-family:'Press Start 2P',monospace;font-size:8px;padding:12px;width:100%;background:#222;color:#888;border:none;border-radius:8px;cursor:pointer;">← BACK</button>
+  </div>
+
+  <div id="status-msg" style="font-size:9px;color:#00FFFF;min-height:18px;"></div>
+  <button onclick="showScreen('menu')" id="lobby-back-main" style="font-family:'Press Start 2P',monospace;font-size:9px;padding:12px 20px;background:#222;color:#666;border:none;border-radius:8px;cursor:pointer;">← MENU</button>
 </div>
 
 <!-- ══════════ WAITING ══════════ -->
@@ -394,6 +403,22 @@ function loadPeerJS(cb){
   s.onload=cb; document.head.appendChild(s);
 }
 
+function lobbyHostFlow(){
+  generateRoom();
+  joinAsP1();
+}
+function lobbyJoinFlow(){
+  document.getElementById('lobby-choose').style.display='none';
+  document.getElementById('lobby-join').style.display='flex';
+  document.getElementById('lobby-back-main').style.display='none';
+  document.getElementById('room-input').value='';
+  document.getElementById('room-input').focus();
+}
+function showLobbyChoose(){
+  document.getElementById('lobby-choose').style.display='flex';
+  document.getElementById('lobby-join').style.display='none';
+  document.getElementById('lobby-back-main').style.display='block';
+}
 function joinAsP1(){
   roomId=getRoom(); if(roomId.length<3){setStatus('CODE TOO SHORT!');return;}
   myRole='p1';
