@@ -3,8 +3,21 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>PAC-MAN</title>
+
+<!-- ── PWA / HOME SCREEN APP ── -->
+
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<meta name="apple-mobile-web-app-title" content="PAC-MAN">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000011">
+
+<!-- Icône générée en canvas via JS, injectée dynamiquement -->
+
+<link id="apple-touch-icon" rel="apple-touch-icon" sizes="180x180">
+<link id="favicon" rel="icon" type="image/png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   :root {
@@ -12,8 +25,13 @@
     --cyan:#00FFFF; --dark:#000011; --wall:#1a1aff; --dot:#FFB8AE;
   }
   *{margin:0;padding:0;box-sizing:border-box;touch-action:none;}
+  html,body{position:fixed;width:100%;overscroll-behavior:none;}
   body{background:var(--dark);font-family:'Press Start 2P',monospace;color:#fff;
-       height:100dvh;overflow:hidden;display:flex;flex-direction:column;align-items:center;}
+       height:100dvh;overflow:hidden;display:flex;flex-direction:column;align-items:center;
+       padding-top:env(safe-area-inset-top,0px);
+       padding-bottom:env(safe-area-inset-bottom,0px);
+       padding-left:env(safe-area-inset-left,0px);
+       padding-right:env(safe-area-inset-right,0px);}
 
 /* ── SCREENS ── */
 .screen{display:none;flex-direction:column;align-items:center;justify-content:center;
@@ -86,7 +104,7 @@ padding:6px 12px;background:rgba(0,0,0,.8);border-bottom:2px solid var(–blue);
 canvas{flex:1;display:block;width:100%;image-rendering:pixelated;}
 
 #dpad{display:flex;flex-direction:column;align-items:center;
-padding:6px 0 env(safe-area-inset-bottom,6px);flex-shrink:0;background:rgba(0,0,0,.5);}
+padding:6px 0 8px;flex-shrink:0;background:rgba(0,0,0,.5);}
 .dpad-row{display:flex;gap:4px;}
 .dpad-btn{width:62px;height:62px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);
 border-radius:12px;font-size:22px;display:flex;align-items:center;justify-content:center;
@@ -752,6 +770,46 @@ document.addEventListener('keydown',e=>{
 
 // ── INIT ──
 generateRoom();
+
+// ── GENERATE APP ICON DYNAMICALLY ──
+(function(){
+  const ic=document.createElement('canvas');
+  ic.width=180;ic.height=180;
+  const cx=ic.getContext('2d');
+  cx.fillStyle='#000011';cx.fillRect(0,0,180,180);
+  // pac-man
+  cx.fillStyle='#FFD700';cx.shadowColor='#FFD700';cx.shadowBlur=20;
+  cx.beginPath();cx.moveTo(90,90);
+  cx.arc(90,90,70,.35,Math.PI*2-.35);cx.closePath();cx.fill();
+  cx.shadowBlur=0;
+  // dots
+  [[130,50],[145,80],[148,110]].forEach(([x,y])=>{
+    cx.fillStyle='#FFB8AE';cx.beginPath();cx.arc(x,y,6,0,Math.PI*2);cx.fill();
+  });
+  const url=ic.toDataURL('image/png');
+  document.getElementById('apple-touch-icon').href=url;
+  document.getElementById('favicon').href=url;
+})();
+
+// ── INSTALL BANNER (iOS Safari) ──
+(function(){
+  const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone=window.navigator.standalone===true;
+  if(isIOS&&!isStandalone){
+    const banner=document.createElement('div');
+    banner.style.cssText='position:fixed;bottom:20px;left:50%;transform:translateX(-50%);'+
+      'background:rgba(20,20,60,.97);border:2px solid #1a1aff;border-radius:14px;'+
+      'padding:12px 16px;font-family:"Press Start 2P",monospace;font-size:7px;color:#aaa;'+
+      'text-align:center;z-index:9999;max-width:280px;line-height:1.8;'+
+      'box-shadow:0 0 20px rgba(0,0,255,.3);';
+    banner.innerHTML='📲 <span style="color:#FFD700">JOUER EN APP</span><br>'+
+      'Safari → <span style="color:#00ffff">⬆︎ Partager</span> → '+
+      '<span style="color:#00ffff">Sur l\'écran d\'accueil</span>'+
+      '<div style="margin-top:8px;cursor:pointer;color:#555;font-size:6px" onclick="this.parentElement.remove()">✕ FERMER</div>';
+    document.body.appendChild(banner);
+    setTimeout(()=>{if(banner.parentElement)banner.remove();},8000);
+  }
+})();
 </script>
 
 </body>
