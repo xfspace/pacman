@@ -235,7 +235,8 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
   <div class="player-indicator" id="p2-wait" style="opacity:.4">
     <div class="pip p2"></div><span id="p2-wait-label">P2 (Pink Pac-Man) — WAITING…</span>
   </div>
-  <button onclick="backToMenu()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 20px;width:200px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #111;margin-top:10px;">← CANCEL</button>
+  <div id="wait-status" style="font-size:9px;color:#00FFFF;min-height:18px;text-align:center;animation:blink 1s infinite;max-width:300px;line-height:1.6;"></div>
+  <button onclick="backToMenu()" style="font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 20px;width:200px;background:#333;color:#aaa;border:none;border-radius:8px;cursor:pointer;letter-spacing:1px;box-shadow:0 4px 0 #111;margin-top:4px;">← CANCEL</button>
 </div>
 
 <!-- ══════════ GAME ══════════ -->
@@ -356,7 +357,12 @@ function backToMenu(){
   showScreen('menu');
 }
 
-function setStatus(m){document.getElementById('status-msg').textContent=m;}
+function setStatus(m){
+  document.getElementById('status-msg').textContent=m;
+  const ws=document.getElementById('wait-status');
+  if(ws) ws.textContent=m;
+  console.log('[STATUS]',m);
+}
 
 // ═══════════════════════════════════════════════════
 //  SOLO
@@ -378,7 +384,7 @@ function startSolo(){
 let peer=null, conn=null;
 
 function getRoom(){
-  return (document.getElementById('room-input').value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,6);
+  return (document.getElementById('room-input').value||'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,6);
 }
 
 function lobbyHostFlow(){ joinAsP1(); }
@@ -464,7 +470,12 @@ function joinAsP1(){
 // ── P2: type the 6-letter code shown on P1's screen ──
 function joinAsP2(){
   const raw=getRoom();
-  if(raw.length!==6){setStatus('Enter the 6-letter code from Player 1');return;}
+  console.log('[P2] joinAsP2 called, raw=',raw);
+  if(raw.length!==6){
+    setStatus('Enter the 6-letter code ('+raw.length+'/6 letters)');
+    document.getElementById('status-msg').textContent='Code: '+raw.length+'/6 chars';
+    return;
+  }
   roomId=raw.toLowerCase();
   const peerId=codeToPeerId(roomId);
   myRole='p2';
