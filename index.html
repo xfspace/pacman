@@ -214,7 +214,9 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
   <div id="lobby-join" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:320px;background:rgba(255,255,255,0.07);border:2px solid #1a1aff;border-radius:14px;padding:20px;">
     <div style="font-size:9px;color:#aaa;letter-spacing:1px;">ENTER ROOM CODE</div>
     <input type="text" id="room-input" maxlength="6" placeholder="ABCDEF"
-      style="background:#fff;color:#000;font-family:'Press Start 2P',monospace;font-size:22px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;text-transform:uppercase;letter-spacing:6px;outline:none;">
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+      autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+      style="background:#fff;color:#000;font-family:'Press Start 2P',monospace;font-size:22px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;letter-spacing:6px;outline:none;">
     <button onclick="joinAsP2()" style="font-family:'Press Start 2P',monospace;font-size:11px;padding:18px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:10px;cursor:pointer;box-shadow:0 5px 0 #8B3060;">▶ CONNECT</button>
     <button onclick="showLobbyChoose()" style="font-family:'Press Start 2P',monospace;font-size:8px;padding:12px;width:100%;background:#222;color:#888;border:none;border-radius:8px;cursor:pointer;">← BACK</button>
   </div>
@@ -384,7 +386,9 @@ function startSolo(){
 let peer=null, conn=null;
 
 function getRoom(){
-  return (document.getElementById('room-input').value||'').trim().toUpperCase().replace(/[^A-Z]/g,'').slice(0,6);
+  const raw=(document.getElementById('room-input').value||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,6);
+  console.log('[getRoom] raw input=',document.getElementById('room-input').value,' filtered=',raw);
+  return raw;
 }
 
 function lobbyHostFlow(){ joinAsP1(); }
@@ -429,13 +433,13 @@ const PEER_CFG={
 // 6-letter code maps to a deterministic peer ID
 // suffix keeps it unique in the peerjs namespace
 const SUFFIX='pacmangame2p';
-function codeToPeerId(code){ return code.toLowerCase()+SUFFIX; }
+function codeToPeerId(code){ return code.toLowerCase()+'-'+SUFFIX; }
 
 // ── P1: generate 6-letter code ──
 function joinAsP1(){
   myRole='p1';
   destroyPeer();
-  const chars='abcdefghjkmnpqrstuvwxyz23456789';
+  const chars='ABCDEFGHJKMNPQRSTUVWXYZ';  // letters only, no ambiguous chars
   let code='';
   for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
   roomId=code;
@@ -469,11 +473,12 @@ function joinAsP1(){
 
 // ── P2: type the 6-letter code shown on P1's screen ──
 function joinAsP2(){
+  const inputVal=document.getElementById('room-input').value;
   const raw=getRoom();
-  console.log('[P2] joinAsP2 called, raw=',raw);
+  console.log('[P2] raw input=['+inputVal+'] filtered=['+raw+'] len='+raw.length);
+  setStatus('Code read: ['+raw+'] ('+raw.length+'/6)');
   if(raw.length!==6){
-    setStatus('Enter the 6-letter code ('+raw.length+'/6 letters)');
-    document.getElementById('status-msg').textContent='Code: '+raw.length+'/6 chars';
+    setStatus('Need 6 letters. Got: ['+raw+'] ('+raw.length+')');
     return;
   }
   roomId=raw.toLowerCase();
