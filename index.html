@@ -225,8 +225,8 @@ radial-gradient(ellipse at 80% 20%,rgba(0,0,80,.4) 0%,transparent 50%);}
 
   <div id="lobby-join" style="display:none;flex-direction:column;align-items:center;gap:12px;width:100%;max-width:320px;background:rgba(255,255,255,0.07);border:2px solid #1a1aff;border-radius:14px;padding:20px;">
     <div style="font-size:9px;color:#aaa;letter-spacing:1px;">ENTER ROOM CODE</div>
-    <input type="text" id="room-input" maxlength="64" placeholder="Paste code from P1"
-      style="background:#fff;color:#000;font-family:monospace;font-size:13px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;letter-spacing:1px;outline:none;">
+    <input type="text" id="room-input" maxlength="6" placeholder="ABCDEF"
+      style="background:#fff;color:#000;font-family:'Press Start 2P',monospace;font-size:22px;padding:14px;width:100%;border:3px solid #FF69B4;border-radius:8px;text-align:center;text-transform:uppercase;letter-spacing:6px;outline:none;">
     <button onclick="joinAsP2()" style="font-family:'Press Start 2P',monospace;font-size:11px;padding:18px;width:100%;background:#FF69B4;color:#000;border:none;border-radius:10px;cursor:pointer;box-shadow:0 5px 0 #8B3060;">▶ CONNECT</button>
     <button onclick="showLobbyChoose()" style="font-family:'Press Start 2P',monospace;font-size:8px;padding:12px;width:100%;background:#222;color:#888;border:none;border-radius:8px;cursor:pointer;">← BACK</button>
   </div>
@@ -396,7 +396,7 @@ function generateRoom(){
   return id;
 }
 function getRoom(){
-  return (document.getElementById('room-input').value||'').trim();
+  return (document.getElementById('room-input').value||'').toUpperCase().replace(/[^A-Z]/g,'').slice(0,6);
 }
 
 function lobbyHostFlow(){ joinAsP1(); }
@@ -427,54 +427,74 @@ function destroyPeer(){
   peerReady=false;
 }
 
-// ── P1: let PeerJS assign a random ID, display it as the room code ──
+// Static suffix — never changes, invisible to user
+const PEER_SUFFIX='PX7K2M9QR4NZ';
+
+function codeToPeerId(code){ return 'pm-'+code.toUpperCase()+'-'+PEER_SUFFIX; }
+
+// ── P1: generate 6-letter code, build deterministic Peer ID ──
 function joinAsP1(){
   myRole='p1';
   destroyPeer();
+  // Generate 6 uppercase letters
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let code='';
+  for(let i=0;i<6;i++) code+=chars[Math.floor(Math.random()*chars.length)];
+  roomId=code;
+  const peerId=codeToPeerId(code);
   setStatus('Creating room...');
   loadPeerJS(()=>{
-    // No fixed ID — PeerJS assigns a unique random one
-    peer=new Peer({debug:0});
-    peer.on('open', id=>{
-      // The room code IS the full peer ID — P2 types this exactly
-      roomId=id;
+    peer=new Peer(peerId,{debug:0});
+    peer.on('open',()=>{
       showScreen('waiting');
-      document.getElementById('room-display').style.fontSize='12px';
-      document.getElementById('room-display').style.letterSpacing='2px';
-      document.getElementById('room-display').textContent=id;
+      // Show only the 6-letter code
+      const disp=document.getElementById('room-display');
+      disp.style.fontSize='32px';
+      disp.style.letterSpacing='8px';
+      disp.textContent=code;
       setStatus('Share this code with Player 2');
-      peer.on('connection', c=>{
+      peer.on('connection',c=>{
         conn=c;
         conn.on('open',()=>{ peerReady=true; onP1Connected(); });
-        conn.on('data', d=>onMsg(d));
+        conn.on('data',d=>onMsg(d));
         conn.on('close',()=>{
           peerReady=false;
           if(gameRunning){gameRunning=false;showOverlay('DISCONNECTED','Opponent left',null);}
         });
       });
     });
-    peer.on('error', e=>setStatus('Error: '+e.type));
+    peer.on('error',e=>{
+      if(e.type==='unavailable-id'){
+        // Extremely rare — just retry with new code
+        destroyPeer(); joinAsP1();
+      } else {
+        setStatus('Error: '+e.type);
+      }
+    });
   });
 }
 
-// ── P2: paste the full code shown on P1's screen ──
+// ── P2: type the 6-letter code ──
 function joinAsP2(){
-  roomId=getRoom();
-  if(roomId.length<6){setStatus('CODE TOO SHORT!');return;}
+  const code=getRoom();
+  if(code.length!==6){setStatus('Enter the 6-letter code from P1');return;}
+  roomId=code;
+  const peerId=codeToPeerId(code);
   myRole='p2';
   destroyPeer();
   setStatus('Connecting...');
   showScreen('waiting');
-  document.getElementById('room-display').style.fontSize='12px';
-  document.getElementById('room-display').style.letterSpacing='2px';
-  document.getElementById('room-display').textContent=roomId;
+  const disp=document.getElementById('room-display');
+  disp.style.fontSize='32px';
+  disp.style.letterSpacing='8px';
+  disp.textContent=code;
   document.getElementById('p2-wait').style.opacity='1';
   document.getElementById('p2-wait-label').textContent='YOU — JOINING…';
   loadPeerJS(()=>{
     peer=new Peer({debug:0});
     peer.on('open',()=>{
       setStatus('Reaching host…');
-      conn=peer.connect(roomId,{reliable:true});
+      conn=peer.connect(peerId,{reliable:true});
       const timeout=setTimeout(()=>{
         if(!peerReady) setStatus('Host not found. Check the code.');
       },12000);
@@ -493,7 +513,7 @@ function joinAsP2(){
         setStatus('Connection failed: '+e.type);
       });
     });
-    peer.on('error',e=>setStatus('Error: '+e.type));
+    peer.on('error',e=>setStatus('Error: '+e.type+'. Check the code.'));
   });
 }
 
